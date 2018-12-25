@@ -1,0 +1,78 @@
+public class EmailUtil {
+
+    public static Properties initProperties(String protocol, String host, int port){
+
+        Properties properties = new Properties();
+        properties.put("mail.transport.protocol", protocol);
+        properties.put("mail.smtp.host", host);
+        properties.put("mail.smtp.port", port);
+        properties.put("mail.smtp.auth", "true");
+        properties.put("mail.smtp.ssl.enable", "true");
+        properties.put("mail.debug", "true");
+        return properties;
+    }
+
+
+    public static void sendEmail(String protocol, String host, int port, String form, String to, String password, String title, String text) throws MessagingException {
+
+        Session session = Session.getInstance(initProperties(protocol, host, port));
+        Message message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(form));
+
+        if(to.contains(",")){
+
+            List<InternetAddress> v = new ArrayList();
+            for (String s : to.split("\\,")) {
+                v.add(new InternetAddress(s));
+            }
+            InternetAddress[] a = new InternetAddress[v.size()];
+            v.toArray(a);
+            message.setRecipients(Message.RecipientType.TO, a);
+        } else {
+            message.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
+        }
+
+        message.setSubject(title);
+        message.setText(text);
+        Transport transport = session.getTransport();
+//        transport.connect(form, password);
+        transport.sendMessage(message, message.getAllRecipients());
+        transport.close();
+    }
+
+    public static void main(String[] args) throws MessagingException {
+        /*String password = "LAcVCNeCKRJJ8RS4";
+        sendEmail("smtp","smtp.exmail.qq.com", 465, "clark.cao@d1m.cn", "leo.li@d1m.cn,radish.tang@d1m.cn", password, "test", "÷Ì");*/
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("123").append("\r\n");
+        stringBuilder.append("aaa");
+        System.out.println(stringBuilder.toString());
+    }
+
+
+
+@Slf4j
+@Configuration
+public class MailConfiguration {
+
+    @Autowired
+    private MetaConfigService metaConfigService;
+
+    public void sendMail(String title, String text){
+        MetaConfig metaConfig = metaConfigService.findBySegmentAndKeyAndStatus("MAIL","MAIL",1);
+        if(metaConfig == null){
+            log.error("mail config not found");
+            throw new PimException(PimCodeEnum.SYSTEM_ERROR);
+        }
+
+        JSONObject jsonObject = JSON.parseObject(metaConfig.getValue());
+        try {
+            EmailUtil.sendEmail(jsonObject.getString("protocol"), jsonObject.getString("host"), jsonObject.getInteger("port"),
+                    jsonObject.getString("form"), jsonObject.getString("to"), jsonObject.getString("password"), title, text);
+        } catch (MessagingException e) {
+            log.error("send mail error ,",e);
+            throw new PimException(PimCodeEnum.MAIL_SEND_ERROR);
+        }
+    }
+
+}
