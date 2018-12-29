@@ -1,0 +1,137 @@
+package com.d1mgroup.datalake.util;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPReply;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.SocketException;
+
+@Slf4j
+public class FTPFileUtil {
+    /**
+     * One point you may find in this Class,when you use STATIC to describe a field,
+     * you cannot get a constructor with arguments,just a constructor with no arguments
+     */
+    private static String host = null;
+    private static int port = 0;
+    private static String userName = null;
+    private static String password = null;
+    private static String remoteAddress = null;
+    private static String localAddress = null;
+    private static String fileName = null;
+
+    private static FTPClient ftpClient = null;
+
+    public void init(String host, int port, String userName, String password, String remoteAddress, String localAddress, String fileName) {
+        this.host = host;
+        this.port = port;
+        this.userName = userName;
+        this.password = password;
+        this.remoteAddress = remoteAddress;
+        this.localAddress = localAddress;
+        this.fileName = fileName;
+    }
+
+    public FTPFileUtil() {
+
+    }
+
+    public FTPFileUtil(String host, int port, String userName, String password) {
+        init(host, port, userName, password, null, null, null);
+    }
+
+    public FTPFileUtil(String host, int port, String userName, String password, String remoteAddress, String localAddress) {
+        init(host, port, userName, password, remoteAddress, localAddress, null);
+    }
+
+    public FTPFileUtil(String host, int port, String userName, String password, String remoteAddress, String localAddress, String fileName) {
+        init(host, port, userName, password, remoteAddress, localAddress, fileName);
+    }
+    /**
+     * In this method,you may get some exceptions,in order to handle business requirements
+     * base on specific exception,you have to throws accurate exception like SocketException,
+     * so that you can know exactly where went wrong
+     *
+     */
+    public FTPClient getFtpClient() throws SocketException{
+        try {
+            ftpClient = new FTPClient();
+            ftpClient.connect(host, port);
+//            ftpClient.setConnectTimeout(10*1000);
+            ftpClient.login(userName, password);
+            if (!FTPReply.isPositiveCompletion(ftpClient.getReplyCode())) {
+                log.error("FTP connection failed,maybe your username or password is wrong");
+                ftpClient.disconnect();
+                throw new SocketException();
+            }
+        } catch (Exception e) {
+            log.error("FTP Connection failed,please check your params", e);
+            throw new SocketException();
+        }
+        return ftpClient;
+    }
+
+    /**
+     * If all files are in same directory such as the param of remoteAddress
+     * when you need to delete a file after you access the file,you can assign true to the field of flag,if not ,just assign false is ok
+     */
+    public void download(boolean flag) {
+        try {
+            /**  tell the ftpClient to locate the directory into remoteAddress  */
+            ftpClient.changeWorkingDirectory(remoteAddress);
+            ftpClient.enterLocalPassiveMode();
+            File parentFile = new File(localAddress);
+            if (!parentFile.exists()) {
+                parentFile.mkdirs();
+            }
+            /**  it means that you specify the file name which you want to download */
+            if (fileName != null) {
+                File localFile = new File(localAddress + fileName);
+                OutputStream os = new FileOutputStream(localFile);
+                /**  download the specific file name from the ftp server */
+                ftpClient.retrieveFile(fileName, os);
+                os.close();
+                if (flag) {
+                    ftpClient.deleteFile(remoteAddress + fileName);
+                }
+            } else {
+                for (FTPFile ff : ftpClient.listFiles()) {
+                    File localFile = new File(localAddress + ff.getName());
+                    OutputStream os = new FileOutputStream(localFile);
+                    ftpClient.retrieveFile(ff.getName(), os);
+                    os.close();
+                    if (flag) {
+                        ftpClient.deleteFile(remoteAddress + ff.getName());
+                    }
+                }
+            }
+            ftpClient.logout();
+        } catch (IOException e) {
+            /**  to do 异常获取需要明确*/
+            e.printStackTrace();
+        }finally {
+            if (ftpClient.isConnected()){
+                try {
+                    ftpClient.disconnect();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        FTPFileUtil ftpFileUtil = new FTPFileUtil("10.60.1.130",21,"ftpuser","ftpuser","/data/ftp/tods/product/","D:/data/ftp/");
+        try {
+            ftpFileUtil.getFtpClient();
+            ftpFileUtil.download(true);
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+    }
+}
