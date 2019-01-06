@@ -1,0 +1,93 @@
+select a.date,a.source,a.keyword,a.visits,b.unique_visits,c.bounces,concat(format(c.bounces/a.visits,2),'%') as bounces_rate,b.pv,
+d.all_product_visits,e.myCesare_visits,(d.all_product_visits - e.myCesare_visits) as normal_spu_visits, f.customization_clicks,
+g.total_collection,h.engraving_in_collections,i.all_add_to_cart,j.mycesare_add_to_cart,(i.all_add_to_cart - j.mycesare_add_to_cart) as ordered_normal_spu,k.total_orders,l.total_ordered_products,
+m.ordered_mycesare,n.order_s2s,n.revenue_s2s,o.total_time_spend,p.mycesare_time_spend,format(o.total_time_spend/a.visits,0) as avg_time_spend,format(p.mycesare_time_spend/a.visits,0) as mycesare_avg_time_spend from
+(select date_format(create_at,'%Y-%m-%d') as date, IFNULL(count(0),0) as visits, 
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name='APP_SHOW' AND wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) a
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,count(distinct open_id) as unique_visits,count(0) as pv,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where user_event = 'VIEW' AND wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) b on a.date = b.date and a.source = b.source and a.keyword = b.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,IFNULL(count(0),0) as bounces,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name='APP_HIDE' AND referrer_url='直接打开' AND wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) c on a.date = c.date and a.source = c.source and a.keyword = c.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,IFNULL(count(0),0) as all_product_visits,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = 'ENTER_PRODUCT_DETAIL' and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) d on a.date = d.date and a.source = d.source and a.keyword = d.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,IFNULL(count(0),0) as mycesare_visits,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = 'ENTER_PRODUCT_DETAIL' and ext_attr is not null and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) e on a.date = e.date and a.source = e.source and a.keyword = e.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,count(0) as customization_clicks,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = '' and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) f on a.date = f.date and a.source = f.source and a.keyword = f.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,count(0) as total_collection,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = '' and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) g on a.date = g.date and a.source = g.source and a.keyword = g.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,count(0) as engraving_in_collections,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = '' and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) h on a.date = h.date and a.source = h.source and a.keyword = h.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,count(0) as all_add_to_cart,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = 'CLICK_ADD_CART' and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) i on a.date = i.date and a.source = i.source and a.keyword = i.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,count(0) as mycesare_add_to_cart,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = 'CLICK_ADD_CART' and ext_attr is not null and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) j on a.date = j.date and a.source = j.source and a.keyword = j.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,count(0) as total_orders,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name='CLICK_CREATE_ORDER' and event_value!='FAIL' and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) k on a.date = k.date and a.source = k.source and a.keyword = k.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,sum(order_quantity) as total_ordered_products,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) l on a.date = l.date and a.source = l.source and a.keyword = l.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,sum(order_quantity) as ordered_mycesare,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where ext_attr is not null and wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) m on a.date = m.date and a.source = m.source and a.keyword = m.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,count(0) as order_s2s,sum(order_total_amount) as revenue_s2s,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = 'CLICK_PAY_SUCCESS' and  wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) n on a.date = n.date and a.source = n.source and a.keyword = n.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,sum(app_duration) as total_time_spend,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = 'APP_HIDE' and  wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) o on a.date = o.date and a.source = o.source and a.keyword = o.keyword
+left join
+(select date_format(create_at,'%Y-%m-%d') as date,sum(app_duration) as mycesare_time_spend,
+case  when source is null then 'other' else source end as source,case  when keyword is null then 'other' else keyword end as keyword 
+from track_event where event_name = 'APP_HIDE' and ext_attr is not null and  wechat_id= 87 and create_at between '2018-01-01' and concat('2019-02-22',' 23:59:59') 
+group by date,source,keyword) p on a.date = p.date and a.source = p.source and a.keyword = p.keyword
+
+
+
+
+[{"title":"Date","key":"date"},{"title":"Keyword","key":"keyword"},{"title":"Source Code","key":"source"},{"title":"Visits","key":"visits"},{"title":"Unique Visits","key":"unique_visits"},{"title":"Bounces","key":"bounces"},{"title":"Bounces Rate","key":"bounces_rate"},{"title":"Page Views","key":"pv"},{"title":"All Product Visits","key":"all_product_visits"},{"title":"MyCesare Visits","key":"mycesare_visits"},{"title":"Normal SPU Visits","key":"normal_spu_visits"},{"title":"Customization Clicks","key":"customization_clicks"},{"title":"Total Collection","key":"total_collection"},{"title":"Engraving in Collections","key":"engraving_in_collections"},{"title":"All Add To Cart","key":"all_add_to_cart"},{"title":"MyCesare Add to Cart","key":"mycesare_add_to_cart"},{"title":"Normal SPU Add to Cart","key":"normal_spu_add_to_cart"},{"title":"Total Orders","key":"total_orders"},{"title":"Total Ordered Products","key":"total_ordered_products"},{"title":"Ordered MyCesare","key":"ordered_mycesare"},{"title":"Ordered Normal SPU","key":"ordered_normal_spu"},{"title":"Order S2S","key":"order_s2s"},{"title":"Revenue S2S","key":"revenue_s2s"},{"title":"Total Time Spent","key":"total_time_spent"},{"title":"MyCesare Time Spend","key":"mycesare_time_spent"},{"title":"Avg Time Spent","key":"avg_time_spent"},{"title":"MyCesare Avg Time Spent","key":"mycesare_avg_time_spent"}]
+
+
+
+
+
