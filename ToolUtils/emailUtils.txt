@@ -1,0 +1,67 @@
+    /**
+     * Spring 封装的一个简单易用的关于邮件发送的工具类JavaMailSenderImpl
+     */
+public class EmailUtil {
+
+    /** 邮件发送器
+     *
+     * @return 配置好的工具
+     */
+    private static JavaMailSenderImpl createMailSender(String protocol,String host,Integer port,String username,String password) {
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        sender.setHost(host);
+        sender.setProtocol(protocol);
+        sender.setPort(port);
+        sender.setUsername(username);
+        sender.setPassword(password);
+        sender.setDefaultEncoding("Utf-8");
+        Properties p = new Properties();
+        p.setProperty("mail.smtp.timeout", "25000");
+        p.setProperty("mail.smtp.auth", "true");
+        /**
+         * qq企业邮箱需要SSL的支持，所以缺省的话会发送失败
+         * 但163邮箱的话是不支持的，这个属性不能添加，因此根据需求来
+         */
+        p.put("mail.smtp.ssl.enable", "true");
+        sender.setJavaMailProperties(p);
+        return sender;
+    }
+    
+    public static void sendMail(String protocol,String host,Integer port,String username,String password,String from,String to, String subject, String content,File file) throws MessagingException,UnsupportedEncodingException {
+        JavaMailSenderImpl mailSender = createMailSender(protocol,host,port,username,password);
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        // 设置utf-8或GBK编码，否则邮件会有乱码
+        MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+        messageHelper.setFrom(from, "SecretMessage");
+        if (to.contains(",")){
+            /** Send email in batches  */
+            String[] emails = to.split(",");
+            messageHelper.setTo(emails);
+        }else {
+            messageHelper.setTo(to);
+        }
+        /**
+         * add a attachment
+         * 如果添加的附件不止一个，可以遍历使用方法addAttachment(),传入的参数要么是数组，要么是个字符串，使用 , 拼接
+         */
+        if (file != null){
+            FileSystemResource fs = new FileSystemResource(file);
+            messageHelper.addAttachment(file.getName(),fs);
+        }
+        messageHelper.setSubject(subject);
+        messageHelper.setText(content, true);
+        mailSender.send(mimeMessage);
+    }
+
+       public static void main(String[] args) throws MessagingException, UnsupportedEncodingException {
+        try {
+            sendMail("smtp",smtp.163.com",25,"yaobosole@163.com","yb19941029","yaobosole@163.com",
+                    "18755957357@163.com,yaobosole@163.com","Just a test","<html><head></head><body><h1>迪丽热巴</h1></body></html>",new File("C:\\Users\\D1M\\Pictures\\123热吧.jpg"));
+            System.out.println("Success");
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+}
