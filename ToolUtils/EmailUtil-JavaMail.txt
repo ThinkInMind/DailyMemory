@@ -35,7 +35,7 @@ public class EmailUtil {
         message.setSubject(title);
         message.setText(text);
         Transport transport = session.getTransport();
-//        transport.connect(form, password);
+        transport.connect(form, password);
         transport.sendMessage(message, message.getAllRecipients());
         transport.close();
     }
